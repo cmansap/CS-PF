@@ -4,7 +4,7 @@ import "./Token.sol";
 
 
 contract Crowdsale {
-    address[] payable public investors;
+    address payable[] public investors;
     address public owner;
     Token public token;
     uint256 public price;
@@ -49,7 +49,7 @@ contract Crowdsale {
     function buyTokens(uint256 _amount) public payable onlyWhileOpen {
         require(msg.value==(_amount/1e18)*price);
         deposit[msg.sender]+=msg.value;
-        investors.push(msg.sender);
+        investors.push(payable(msg.sender));
         etherRaised+=msg.value;
         
         token.transfer(msg.sender,_amount);
@@ -86,17 +86,17 @@ contract Crowdsale {
         return etherRaised >= cap;
     }
 
-    function refundInvestor(address payable _investor) public onlyOwner{
-        uint256 depositedAmount = deposit[_investor];
-        deposit[_investor] = 0;
-        _investor.transfer(depositedAmount);
-    }
+    // function refundInvestor(address payable _investor) public onlyOwner{
+    //     uint256 depositedAmount = deposit[_investor];
+    //     deposit[_investor] = 0;
+    //     _investor.transfer(depositedAmount);
+    // }
 
     function finalization() internal onlyOwner{
         if(goalReached()){
            finalize();
         }else{
-            refundInvestor(payable(msg.sender));
+            refundInvestors();
         }
 
     }
