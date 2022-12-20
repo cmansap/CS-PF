@@ -16,10 +16,11 @@ contract Crowdsale {
     bool public isFinalized = false;
     uint256 public etherRaised;
 
-    constructor(Token _token,uint256 _price,uint256 _maxTokens,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
+    //constructor(Token _token,uint256 _price,uint256 _maxTokens,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
+    constructor(Token _token,uint256 _price,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
        token = _token; 
        price = _price;
-       maxTokens = _maxTokens;
+       //maxTokens = _maxTokens;
        openingTime = _openingTime;
        closingTime = _closingTime;
        cap = _cap;
@@ -37,6 +38,7 @@ contract Crowdsale {
     }
 
     modifier onlyWhileOpen {
+        // console.log(block.timestamp);
         require(block.timestamp >= openingTime && block.timestamp <= closingTime);
     _;
   }
@@ -46,6 +48,7 @@ contract Crowdsale {
         buyTokens(amount);
     }
 
+    //function buyTokens(uint256 _amount) public payable  {
     function buyTokens(uint256 _amount) public payable onlyWhileOpen {
         require(msg.value==(_amount/1e18)*price);
         deposit[msg.sender]+=msg.value;
@@ -53,7 +56,7 @@ contract Crowdsale {
         etherRaised+=msg.value;
         
         token.transfer(msg.sender,_amount);
-        require(token.balanceOf(address(this))>=_amount);
+        //require(token.balanceOf(address(this))>=_amount);
         tokensSold+=_amount;
         emit Buy(_amount,msg.sender);
     }

@@ -1,5 +1,6 @@
 const { expect } =  require('chai');
 const { ethers } = require('hardhat');
+const { time } = require('@nomicfoundation/hardhat-network-helpers');
 
 const tokens = (n) =>{
     return ethers.utils.parseUnits(n.toString(),'ether')
@@ -9,7 +10,7 @@ const ether = tokens
 
 describe("Crowdsale",async()=>{
     let crowdsale,token
-    let accounts,deployer,user1
+    let accounts,deployer,user1,OPENINGTIME,CLOSINGTIME
     beforeEach(async()=>{
         const Crowdsale = await ethers.getContractFactory("Crowdsale")
         const Token = await ethers.getContractFactory("Token")
@@ -18,7 +19,17 @@ describe("Crowdsale",async()=>{
         deployer = accounts[0]
         user1 = accounts[1]
 
-        crowdsale = await Crowdsale.deploy(token.address,ether(1),'1000000')
+        let now = await time.latest()
+        OPENINGTIME = now - 1000;
+        CLOSINGTIME = now + 2000;
+
+        //const CAP = ethers.utils.parseUnits('10','ether')
+        //const PRICE = ethers.utils.parseUnits('0.025','ether')
+        // const OPENINGTIME = (Date.now()-60000).toString().slice(0, 10)
+        // console.log(`The opetime is ${OPENINGTIME}`)
+        // const CLOSINGTIME = (Date.now()+10*24*60*60*1000).toString().slice(0, 10)
+        // console.log(`The closingtime is ${CLOSINGTIME}`)
+        crowdsale = await Crowdsale.deploy(token.address,ether(1),OPENINGTIME,CLOSINGTIME,ether(100))
         let transaction = await token.connect(deployer).transfer(crowdsale.address,tokens(1000000))
         await transaction.wait()
         
@@ -36,6 +47,15 @@ describe("Crowdsale",async()=>{
         it("returns the token address",async()=>{
             expect(await crowdsale.token()).to.eq(token.address)    
         })
+        it("returns the crowdsale cap",async()=>{
+            expect(await crowdsale.cap()).to.eq(ether(100))    
+        })
+
+        // it("returns the crowdsale opening time",async()=>{
+        //     console.log(await crowdsale.openingTime())
+        //     console.log(await crowdsale.closingTime())
+        //     //expect(await crowdsale.openingTime()).to.eq(ether(100))    
+        // })
 
       
     })
@@ -64,6 +84,10 @@ describe("Crowdsale",async()=>{
             it("updates totalSold",async()=>{         
                 expect(await crowdsale.tokensSold()).to.eq(amount)
             })
+            it("ether raised for a transaction",async()=>{         
+                expect(await crowdsale.etherRaised()).to.equal(ether(10))
+            })
+            
             it("emits the buy event",async()=>{         
                 await expect(transaction).to.emit(crowdsale,"Buy").withArgs(amount,user1.address)
             })
@@ -74,32 +98,41 @@ describe("Crowdsale",async()=>{
             it("reject insufficient ETH",async()=>{         
                 await expect(crowdsale.connect(user1).buyTokens(tokens(10),{value:0})).to.be.reverted
             })
+
+            it("reject buy transaction if the opentime > block.timestamp",async()=>{  
+                await time.increaseTo(OPENINGTIME+1005)       
+                await expect(crowdsale.connect(user1).buyTokens(tokens(10),{value:10})).to.be.reverted
+            })
             
         })
     })
 
-    // describe("Sending ETH",async()=>{
-    //     let transaction , result
-    //     let amount = ether(10)
+    describe("Sending ETH",async()=>{
+        let transaction , result
+        let amount = ether(2)
 
-    //     describe("Success",async()=>{
-    //         beforeEach(async()=>{
-    //             transaction = await user1.sendTransaction({to:crowdsale.address,value:amount})
-    //             result = await transaction.wait()
-    //         })
-    //         it("updates contracts ether balance",async()=>{         
-    //             expect(await ethers.provider.getBalance(crowdsale.address)).to.eq(amount)
-    //         })
-    //         // it("updates totalSold",async()=>{         
-    //         //     expect(await crowdsale.tokensSold()).to.eq(amount)
-    //         // })
-    //         // it("emits the buy event",async()=>{         
-    //         //     await expect(transaction).to.emit(crowdsale,"Buy").withArgs(amount,user1.address)
-    //         // })
+        describe("Success",async()=>{
+            beforeEach(async()=>{
+                transaction = await user1.sendTransaction({to:crowdsale.address,value:amount})
+                result = await transaction.wait()
+            })
 
-    //     })  
+            it("updates contracts ether balance",async()=>{         
+                expect(await ethers.provider.getBalance(crowdsale.address)).to.eq(amount)
+            })
+
+            it("updates totalSold",async()=>{         
+                expect(await crowdsale.tokensSold()).to.eq(amount)
+            })
+
+            it("emits the buy event",async()=>{         
+                await expect(transaction).to.emit(crowdsale,"Buy").withArgs(amount,user1.address)
+            })
+
+
+        })  
         
-    // })
+    })
 
 
     // describe("Updating Price",()=>{
@@ -165,32 +198,33 @@ describe("Crowdsale",async()=>{
     // })
 
 
-    describe("refund the amount to investor",async()=>{
+    // describe("refund the amount to investor",async()=>{
 
-        beforeEach(async()=>{
-            transaction = await crowdsale.connect(user1).buyTokens(tokens(10),{value : ether(10)})
-            result = await transaction.wait()
-        })
+    //     beforeEach(async()=>{
+    //         transaction = await crowdsale.connect(user1).buyTokens(tokens(10),{value : ether(10)})
+    //         result = await transaction.wait()
+    //     })
 
-        it("amount received by investor",async()=>{  
-            console.log(`The user1 balance before is ${(await ethers.provider.getBalance(user1.address))}`)
-            await crowdsale.refundInvestor(user1.address)
-            console.log(`The user1 balance After is ${(await ethers.provider.getBalance(user1.address))}`)
+    //     it("amount received by investor",async()=>{  
+    //         console.log(`The user1 balance before is ${(await ethers.provider.getBalance(user1.address))}`)
+    //         await crowdsale.refundInvestor(user1.address)
+    //         console.log(`The user1 balance After is ${(await ethers.provider.getBalance(user1.address))}`)
 
-        })
+    //     })   
 
-        describe("capped crowdsale",async()=>{
+    // })
 
+    // describe("capped crowdsale",async()=>{
 
-            it("has the correct hard cap",async()=>{  
-                console.log(await crowdsale.etherRaised())
-                //expect(await crowdsale.cap().to.equal(0)
+    //     it("has the correct hard cap",async()=>{  
+    //         transaction = await crowdsale.connect(user1).buyTokens(tokens(1),{value : ether(1)})
+    //         result = await transaction.wait()
+    //         expect(await crowdsale.etherRaised()).to.equal(ether(1))
+    //         expect(await crowdsale.cap()).to.equal(ether(100))
 
-            })
+    //     })
 
-        })
-
-    })
+    // })
 })
 
 

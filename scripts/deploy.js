@@ -10,7 +10,10 @@ async function main() {
   const NAME = "Dapp University"
   const SYMBOL = "DAPP"
   const MAX_SUPPLY = "1000000"
+  const CAP = ethers.utils.parseUnits('10','ether')
   const PRICE = ethers.utils.parseUnits('0.025','ether')
+  const OPENINGTIME = (Date.now() + 60000).toString().slice(0, 10)
+  const CLOSINGTIME = (Date.now() + 120*60000).toString().slice(0, 10)
 
   const Token = await hre.ethers.getContractFactory("Token")
   let token = await Token.deploy(NAME,SYMBOL,MAX_SUPPLY)
@@ -19,7 +22,7 @@ async function main() {
 
 
   const Crowdsale = await hre.ethers.getContractFactory("Crowdsale")
-  const crowdsale = await Crowdsale.deploy(token.address,PRICE,ethers.utils.parseUnits(MAX_SUPPLY,'ether'))
+  const crowdsale = await Crowdsale.deploy(token.address,PRICE,CAP,OPENINGTIME,CLOSINGTIME)
   await crowdsale.deployed()
   console.log(`Token deployed to : ${crowdsale.address}\n`)
 
