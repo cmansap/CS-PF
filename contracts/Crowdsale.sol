@@ -16,7 +16,6 @@ contract Crowdsale {
     bool public isFinalized = false;
     uint256 public etherRaised;
 
-    //constructor(Token _token,uint256 _price,uint256 _maxTokens,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
     constructor(Token _token,uint256 _price,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
        token = _token; 
        price = _price;
@@ -26,7 +25,7 @@ contract Crowdsale {
        cap = _cap;
        owner = msg.sender;
     }
-    // This mapping is track the ether deposited by investor (use to refund)
+
     mapping(address =>uint256) public deposit;
 
     event Buy(uint256 amount,address Buyer);
@@ -38,30 +37,23 @@ contract Crowdsale {
     }
 
     modifier onlyWhileOpen {
-        // console.log(block.timestamp);
         require(block.timestamp >= openingTime && block.timestamp <= closingTime);
-    _;
-  }
+        _;
+    }
 
     receive() external payable {
         uint256 amount = msg.value / price;
-        buyTokens(amount);
+        reserveTokens(amount*1e18);
     }
 
-    //function buyTokens(uint256 _amount) public payable  {
-    function buyTokens(uint256 _amount) public payable onlyWhileOpen {
+    function reserveTokens(uint256 _amount) public payable onlyWhileOpen  {
         require(msg.value==(_amount/1e18)*price);
         deposit[msg.sender]+=msg.value;
         investors.push(payable(msg.sender));
         etherRaised+=msg.value;
-        
-        token.transfer(msg.sender,_amount);
-        //require(token.balanceOf(address(this))>=_amount);
-        tokensSold+=_amount;
-        emit Buy(_amount,msg.sender);
     }
 
-    function finalize() public onlyOwner{
+    function finalization() internal {
         require(!isFinalized);
         require(hasClosed());
         uint256 remainingTokens = token.balanceOf(address(this));
@@ -81,7 +73,6 @@ contract Crowdsale {
     }
 
      function hasClosed() public view returns (bool) {
-        //require(etherRaised == cap, "not met the fundraising goal");
         return block.timestamp > closingTime;
     }
 
@@ -89,31 +80,29 @@ contract Crowdsale {
         return etherRaised >= cap;
     }
 
-    // function refundInvestor(address payable _investor) public onlyOwner{
-    //     uint256 depositedAmount = deposit[_investor];
-    //     deposit[_investor] = 0;
-    //     _investor.transfer(depositedAmount);
-    // }
-
-    function finalization() internal onlyOwner{
+    function finalize() public {
         if(goalReached()){
-           finalize();
+           distributeTokens();
+           finalization();
         }else{
             refundInvestors();
         }
-
     }
 
-    function refundInvestors() public onlyOwner{
-       
+    function refundInvestors() public onlyOwner{    
         for(uint i = 0; i < investors.length; i++){
-		uint256 depositedAmount = deposit[investors[i]];
-        deposit[investors[i]] = 0;
-        investors[i].transfer(depositedAmount);
-		}
-        
+            uint256 depositedAmount = deposit[investors[i]];
+            deposit[investors[i]] = 0;
+            investors[i].transfer(depositedAmount);
+		}      
     }
 
+    function distributeTokens() public onlyOwner{    
+        for(uint i = 0; i < investors.length; i++){
+            uint256 numberOfTokens = (deposit[investors[i]]/price)*1e18;
+            token.transfer(investors[i],numberOfTokens);
+        }    
+    }
 }
 
 
