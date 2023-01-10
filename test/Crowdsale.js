@@ -20,6 +20,7 @@ describe("Crowdsale",async()=>{
         user1 = accounts[1]
 
         let now = await time.latest()
+        console.log(`The time is $now`)
         OPENINGTIME = now - 1000;
         CLOSINGTIME = now + 2000;
 
