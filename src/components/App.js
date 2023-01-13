@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 
 // Components
 import Navigation from './Navigation';
-import Buy from './Buy';
+import Reserve from './Reserve';
 import Info from './Info';
 import Progress from './Progress';
 import Loading from './Loading';
@@ -52,13 +52,15 @@ function App() {
     const price = ethers.utils.formatUnits(await crowdsale.price(), 18)
     setPrice(price)
 
-    // // Fetch max tokens
-    // const maxTokens = ethers.utils.formatUnits(await crowdsale.maxTokens(), 18)
-    // setMaxTokens(maxTokens)
+    // Fetch max tokens
+    const maxTokens = ethers.utils.formatUnits(await crowdsale.maxTokens(), 18)
+    setMaxTokens(maxTokens)
 
-    // // Fetch tokens sold
-    // const tokensSold = ethers.utils.formatUnits(await crowdsale.tokensSold(), 18)
-    // setTokensSold(tokensSold)
+    console.log(`The maximum number of Tokens ${maxTokens}`)
+
+    // Fetch tokens sold
+    const tokensSold = ethers.utils.formatUnits(await crowdsale.tokensSold(), 18)
+    setTokensSold(tokensSold)
 
     setIsLoading(false)
   }
@@ -71,26 +73,25 @@ function App() {
 
   return(
     <Container>
-      <Navigation />
+    <Navigation />
+    <h1 className='my-4 text-center'>Introducing JSP Token!</h1>
 
-      <h1 className='my-4 text-center'>Introducing JSP Token!</h1>
+    {isLoading ? (
+      <Loading />
+    ) : (
+      <>
+        <p className='text-center'><strong>Current Price:</strong> {price} ETH</p>
+        <Reserve provider={provider} price={price} crowdsale={crowdsale} setIsLoading={setIsLoading} />
+        <Progress maxTokens={maxTokens} tokensSold={tokensSold} />
+      </>
+    )}
 
-      {isLoading ? (
-        <Loading />
-      ) : (
-        <>
-          <p className='text-center'><strong>Current Price:</strong> {price} ETH</p>
-          <Buy provider={provider} price={price} crowdsale={crowdsale} setIsLoading={setIsLoading} />
-          <Progress maxTokens={maxTokens} tokensSold={tokensSold} />
-        </>
-      )}
+    <hr />
 
-      <hr />
-
-      {account && (
-        <Info account={account} accountBalance={accountBalance} />
-      )}
-    </Container>
+    {account && (
+      <Info account={account} accountBalance={accountBalance} />
+    )}
+  </Container>
   )
 }
 

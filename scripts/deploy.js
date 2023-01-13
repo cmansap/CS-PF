@@ -13,7 +13,7 @@ async function main() {
   const CAP = ethers.utils.parseUnits('10','ether')
   const PRICE = ethers.utils.parseUnits('0.025','ether')
   const OPENINGTIME = (Date.now() + 60000).toString().slice(0, 10)
-  const CLOSINGTIME = (Date.now() + 120*60000).toString().slice(0, 10)
+  const CLOSINGTIME = (Date.now() + 10*24*60*60*1000).toString().slice(0, 10)
 
   const Token = await hre.ethers.getContractFactory("Token")
   let token = await Token.deploy(NAME,SYMBOL,MAX_SUPPLY)
@@ -22,13 +22,13 @@ async function main() {
 
 
   const Crowdsale = await hre.ethers.getContractFactory("Crowdsale")
-  const crowdsale = await Crowdsale.deploy(token.address,PRICE,CAP,OPENINGTIME,CLOSINGTIME)
+  const crowdsale = await Crowdsale.deploy(token.address,PRICE,ethers.utils.parseUnits(MAX_SUPPLY,'ether'),OPENINGTIME,CLOSINGTIME,CAP)
   await crowdsale.deployed()
   console.log(`Token deployed to : ${crowdsale.address}\n`)
 
   const transaction = await token.transfer(crowdsale.address,ethers.utils.parseUnits(MAX_SUPPLY,'ether'))
   await transaction.wait()
-  console.log(`Tokens transferred to Crowdsale\n`)
+  console.log(`Tokens transferred to Crowdsale ${await token.balanceOf(crowdsale.address)}\n`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

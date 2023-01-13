@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 import "./Token.sol";
 
-
 contract Crowdsale {
     address payable[] public investors;
     address public owner;
@@ -16,10 +15,10 @@ contract Crowdsale {
     bool public isFinalized = false;
     uint256 public etherRaised;
 
-    constructor(Token _token,uint256 _price,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
+    constructor(Token _token,uint256 _price,uint256 _maxTokens,uint256 _openingTime,uint256 _closingTime,uint256 _cap){
        token = _token; 
        price = _price;
-       //maxTokens = _maxTokens;
+       maxTokens = _maxTokens;
        openingTime = _openingTime;
        closingTime = _closingTime;
        cap = _cap;
@@ -28,7 +27,7 @@ contract Crowdsale {
 
     mapping(address =>uint256) public deposit;
 
-    event Buy(uint256 amount,address Buyer);
+    event Reserve(uint256 amount,address Buyer);
     event Finalize(uint256 tokensSold,uint256 ethRaised);
 
     modifier onlyOwner(){
@@ -51,6 +50,9 @@ contract Crowdsale {
         deposit[msg.sender]+=msg.value;
         investors.push(payable(msg.sender));
         etherRaised+=msg.value;
+
+        tokensSold+=_amount;
+        emit Reserve(_amount,msg.sender);
     }
 
     function finalization() internal {
